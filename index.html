@@ -1,0 +1,1532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kern OS - Skill Tree</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #09090b;
+    --bg-surface: #18181b;
+    --bg-elevated: #27272a;
+    --border: #3f3f46;
+    --text: #fafafa;
+    --text-muted: #a1a1aa;
+    --text-dim: #71717a;
+    --panel-width: 380px;
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* ---- Top bar ---- */
+  .top-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    background: linear-gradient(to bottom, rgba(9,9,11,0.95) 0%, rgba(9,9,11,0.7) 80%, transparent 100%);
+    pointer-events: none;
+  }
+
+  .top-bar > * { pointer-events: auto; }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo-mark {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #a855f7 0%, #3b82f6 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    color: white;
+  }
+
+  .logo-text {
+    font-weight: 600;
+    font-size: 16px;
+    letter-spacing: -0.02em;
+  }
+
+  .logo-sub {
+    color: var(--text-dim);
+    font-weight: 400;
+    margin-left: 4px;
+  }
+
+  .search-wrapper {
+    position: relative;
+    width: 320px;
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-dim);
+    pointer-events: none;
+  }
+
+  .search-input {
+    width: 100%;
+    padding: 10px 12px 10px 38px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .search-input::placeholder { color: var(--text-dim); }
+  .search-input:focus {
+    border-color: #a855f7;
+    box-shadow: 0 0 0 3px rgba(168,85,247,0.15);
+  }
+
+  .stats {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .stat-num {
+    color: var(--text-muted);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---- Legend ---- */
+  .legend {
+    position: fixed;
+    bottom: 24px;
+    left: 24px;
+    z-index: 100;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    padding: 12px 16px;
+    background: rgba(24,24,27,0.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    font-size: 12px;
+    max-width: 520px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+  }
+
+  .legend-item:hover { opacity: 1; }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .legend-label {
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  /* ---- Controls hint ---- */
+  .controls-hint {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 100;
+    font-size: 12px;
+    color: var(--text-dim);
+    background: rgba(24,24,27,0.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    line-height: 1.6;
+  }
+
+  .controls-hint kbd {
+    display: inline-block;
+    padding: 1px 5px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  /* ---- SVG canvas ---- */
+  #canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    cursor: grab;
+  }
+
+  #canvas.dragging { cursor: grabbing; }
+
+  /* ---- Detail Panel ---- */
+  .detail-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: var(--panel-width);
+    height: 100%;
+    background: var(--bg-surface);
+    border-left: 1px solid var(--border);
+    z-index: 200;
+    transform: translateX(100%);
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .detail-panel.open { transform: translateX(0); }
+
+  .panel-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 24px 24px 0 24px;
+  }
+
+  .panel-close {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-elevated);
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, color 0.15s;
+    flex-shrink: 0;
+  }
+
+  .panel-close:hover {
+    background: var(--border);
+    color: var(--text);
+  }
+
+  .panel-body {
+    padding: 24px;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .panel-category {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+  }
+
+  .panel-cat-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  .panel-title {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+    margin-bottom: 16px;
+  }
+
+  .panel-description {
+    font-size: 15px;
+    line-height: 1.65;
+    color: var(--text-muted);
+    margin-bottom: 24px;
+  }
+
+  .panel-section-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+  }
+
+  .panel-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 24px;
+  }
+
+  .panel-tag {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid;
+  }
+
+  .panel-usage {
+    padding: 16px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 16px;
+  }
+
+  .panel-usage-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+
+  .panel-usage-code {
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 14px;
+    color: #a855f7;
+  }
+
+  .panel-related {
+    margin-top: 8px;
+  }
+
+  .panel-related-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(63,63,70,0.5);
+    cursor: pointer;
+    transition: color 0.15s;
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+
+  .panel-related-item:hover { color: var(--text); }
+  .panel-related-item:last-child { border-bottom: none; }
+
+  .panel-related-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ---- Responsive ---- */
+  @media (max-width: 768px) {
+    .search-wrapper { width: 200px; }
+    .stats { display: none; }
+    .legend { max-width: calc(100vw - 48px); }
+    .controls-hint { display: none; }
+    .detail-panel { width: 100%; }
+  }
+
+  @media (max-width: 480px) {
+    .top-bar { padding: 12px 16px; }
+    .search-wrapper { width: 160px; }
+    .logo-sub { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div class="top-bar">
+  <div class="logo">
+    <div class="logo-mark">K</div>
+    <div class="logo-text">Kern OS<span class="logo-sub">Skill Tree</span></div>
+  </div>
+  <div class="search-wrapper">
+    <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input class="search-input" id="searchInput" type="text" placeholder="Search skills..." autocomplete="off" spellcheck="false">
+  </div>
+  <div class="stats">
+    <span><span class="stat-num" id="skillCount">0</span> skills</span>
+    <span><span class="stat-num" id="catCount">0</span> categories</span>
+  </div>
+</div>
+
+<!-- Legend -->
+<div class="legend" id="legend"></div>
+
+<!-- Controls Hint -->
+<div class="controls-hint">
+  <kbd>Scroll</kbd> Zoom &nbsp; <kbd>Drag</kbd> Pan &nbsp; <kbd>Click</kbd> Explore<br>
+  <kbd>Esc</kbd> Close panel &nbsp; <kbd>/</kbd> Search
+</div>
+
+<!-- SVG Canvas -->
+<svg id="canvas" xmlns="http://www.w3.org/2000/svg"></svg>
+
+<!-- Detail Panel -->
+<div class="detail-panel" id="detailPanel">
+  <div class="panel-header">
+    <div></div>
+    <button class="panel-close" id="panelClose" aria-label="Close panel">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="panel-body" id="panelBody"></div>
+</div>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+const DATA = {
+  "categories": {
+    "Dev": {
+      "color": "#3b82f6",
+      "skills": [
+        {"name": "superpowers", "description": "Jesse Vincent's complete software dev methodology for coding agents. 14 components covering TDD, planning, code review.", "tags": ["methodology", "tdd", "planning"]},
+        {"name": "smart-fix", "description": "Triage and fix any issue by auto-routing to the right specialist: debugger for code errors, devops for infra, performance engineer for speed.", "tags": ["debugging", "workflow"]},
+        {"name": "smart-debug", "description": "Debug complex issues using specialist debug and performance-engineer subagents.", "tags": ["debugging", "ops"]},
+        {"name": "full-review", "description": "Multi-agent code review covering quality, security, architecture, performance, and test coverage.", "tags": ["code-review", "security"]},
+        {"name": "senior-frontend", "description": "Senior-level frontend development for React/Next.js/TypeScript/Tailwind.", "tags": ["react", "nextjs", "frontend"]},
+        {"name": "nextjs-expert", "description": "Next.js 15 App Router specialist. Server-first components, async params, RSC vs Client Components.", "tags": ["nextjs", "frontend"]},
+        {"name": "nextjs-api", "description": "Next.js App Router API route patterns. CRUD with NextResponse, middleware auth, Zod validation.", "tags": ["nextjs", "api"]},
+        {"name": "supabase", "description": "Supabase patterns for schema design, RLS, migrations, queries, auth, and REST API.", "tags": ["database", "backend"]},
+        {"name": "stripe-best-practices", "description": "Stripe integration best practices. CheckoutSessions, hosted Checkout, SetupIntents.", "tags": ["payments"]},
+        {"name": "refactor-clean", "description": "Structured refactoring workflow. Analyses code smells and SOLID violations.", "tags": ["code-quality", "architecture"]},
+        {"name": "deep-modules-audit", "description": "Audit codebase for shallow module sprawl and restructure into deep modules.", "tags": ["architecture", "refactoring"]},
+        {"name": "mega-code-fix", "description": "Parallel 7-subagent codebase cleanup for mature repos.", "tags": ["code-quality", "cleanup"]},
+        {"name": "tech-debt", "description": "Full technical debt inventory and ROI-based remediation roadmap.", "tags": ["architecture", "planning"]},
+        {"name": "deps-upgrade", "description": "Safely upgrade npm dependencies across a project.", "tags": ["maintenance", "security"]},
+        {"name": "security-scan", "description": "OWASP-aligned security audit for Node.js/Next.js projects.", "tags": ["security"]},
+        {"name": "github-cli", "description": "Use the gh CLI for GitHub operations: issues, PRs, CI runs, API queries.", "tags": ["github"]},
+        {"name": "pr-enhance", "description": "Generate comprehensive PR descriptions from git diffs.", "tags": ["git", "workflow"]},
+        {"name": "vercel-react-best-practices", "description": "45 rules from Vercel Engineering across 8 categories.", "tags": ["react", "performance"]},
+        {"name": "vercel-composition-patterns", "description": "React composition patterns that scale. Compound components, context, render props.", "tags": ["react", "patterns"]},
+        {"name": "html-pdf-export", "description": "Build pixel-perfect PDF-exportable HTML.", "tags": ["pdf", "frontend"]},
+        {"name": "mcp-builder", "description": "Build MCP servers to expose external APIs as tools for Claude.", "tags": ["mcp", "integration"]},
+        {"name": "prompt-optimize", "description": "Take an existing AI prompt and improve it with chain-of-thought, few-shot examples.", "tags": ["ai", "productivity"]}
+      ]
+    },
+    "Infrastructure": {
+      "color": "#f59e0b",
+      "skills": [
+        {"name": "railway-deploy", "description": "Deploy Node.js services to Railway. railway.toml config, auto-deploy from GitHub.", "tags": ["railway", "deployment"]},
+        {"name": "vercel-deploy", "description": "Deploy Next.js to Vercel via GitHub. Environment variables, preview URLs.", "tags": ["vercel", "deployment"]},
+        {"name": "ship-website", "description": "Deploy a website or landing page to Vercel.", "tags": ["deployment"]},
+        {"name": "deploy-checklist", "description": "Generate environment-specific deployment checklists.", "tags": ["ops", "deployment"]},
+        {"name": "incident-response", "description": "Five-phase production incident workflow: triage, root cause, fix, stabilisation, postmortem.", "tags": ["ops", "devops"]},
+        {"name": "analytics-setup", "description": "Set up and audit analytics tracking. GA4, event tracking, conversion goals.", "tags": ["analytics", "marketing"]},
+        {"name": "email-domain-setup", "description": "Full automated email domain setup: Resend + ImprovMX + Gmail Send As + signing.", "tags": ["email", "dns"]}
+      ]
+    },
+    "Design": {
+      "color": "#ec4899",
+      "skills": [
+        {"name": "impeccable", "description": "Design quality system for frontend work. Audits, refines, and elevates AI-generated UI. 23 slash commands.", "tags": ["ui", "quality"]},
+        {"name": "designrip", "description": "Extract any website's design system from the live DOM.", "tags": ["extraction", "tailwind"]},
+        {"name": "brand-guidelines", "description": "Apply consistent brand identity to any artifact.", "tags": ["brand", "marketing"]},
+        {"name": "glassmorphism-ui", "description": "Modern glassmorphism styling with Tailwind CSS. Dark mode patterns.", "tags": ["ui", "tailwind"]},
+        {"name": "bento-design", "description": "Build modern bento grid layouts for landing pages and dashboards.", "tags": ["layout", "ui"]},
+        {"name": "accessibility-audit", "description": "Audit for WCAG 2.2 AA compliance with prioritised fix list.", "tags": ["a11y", "quality"]}
+      ]
+    },
+    "Frontend Components": {
+      "color": "#8b5cf6",
+      "skills": [
+        {"name": "tilt-card", "description": "3D perspective tilt card following mouse/touch.", "tags": ["animation", "3d"]},
+        {"name": "flip-card", "description": "3D CSS flip card with front/back faces and smooth Y-axis rotation.", "tags": ["animation", "3d"]},
+        {"name": "fanned-cards", "description": "Fanned card carousel with active card centred, adjacent peeking.", "tags": ["carousel"]},
+        {"name": "vertical-fanned-cards", "description": "Vertical card carousel with auto-cycle every 2.5s.", "tags": ["carousel"]},
+        {"name": "floating-quotes", "description": "Draggable glassmorphic quote cards with physics-based momentum.", "tags": ["animation", "physics"]},
+        {"name": "envelope-letter", "description": "Multi-phase animated envelope: slides in, flips open, letter slides out.", "tags": ["animation"]},
+        {"name": "matrix-text", "description": "Typewriter text reveal with blinking cursor and optional glow.", "tags": ["animation", "text"]},
+        {"name": "scramble-text", "description": "Text reveal where random characters scramble then resolve.", "tags": ["animation", "text"]},
+        {"name": "email-gate", "description": "Email capture modal that personalises the entire site.", "tags": ["marketing", "ui"]},
+        {"name": "infinite-canvas", "description": "Nested navigable canvas with React Flow + Zustand.", "tags": ["navigation", "ui"]},
+        {"name": "iframe-preview", "description": "Auto-scaling iframe preview component with before/after toggle.", "tags": ["preview", "ui"]},
+        {"name": "sound-engine", "description": "Web Audio API sound design system. 13 synthesized UI sounds.", "tags": ["audio"]},
+        {"name": "scroll-video-hero", "description": "Scroll-controlled cinematic video hero section.", "tags": ["video", "animation"]},
+        {"name": "bubble-chart", "description": "Interactive packed bubble chart with timeline slider.", "tags": ["data-viz"]}
+      ]
+    },
+    "Marketing": {
+      "color": "#10b981",
+      "skills": [
+        {"name": "seo", "description": "On-page SEO rules, technical audits, content strategy, structured data.", "tags": ["seo"]},
+        {"name": "ai-seo", "description": "Optimize content for AI-generated answers and LLM search results.", "tags": ["seo", "ai"]},
+        {"name": "programmatic-seo", "description": "Build SEO-driven page templates for large-scale content generation.", "tags": ["seo", "dev"]},
+        {"name": "cold-email-sequence", "description": "Write cold email outreach sequences for lead generation.", "tags": ["outreach", "levity"]},
+        {"name": "apollo-sequence-hygiene", "description": "Pre-flight checklist for Apollo sequence management.", "tags": ["outreach", "email"]},
+        {"name": "email-marketing-system", "description": "End-to-end email marketing: Resend audience, templates, campaigns.", "tags": ["email", "newsletter"]},
+        {"name": "competitor-analysis", "description": "Research and analyse a competitor: product, pricing, positioning.", "tags": ["research", "strategy"]},
+        {"name": "content-automation", "description": "End-to-end content growth engine. Blog infra, GSC, GA4, autopilot.", "tags": ["content", "automation"]}
+      ]
+    },
+    "Content": {
+      "color": "#06b6d4",
+      "skills": [
+        {"name": "seo-article", "description": "Write complete SEO-optimised long-form articles for content sites.", "tags": ["writing", "seo"]},
+        {"name": "illustrate-article", "description": "Generate editorial infographics with OpenAI gpt-image-2.", "tags": ["images", "infographics"]},
+        {"name": "tufte-report", "description": "Create Tufte-inspired data reports and infographic dashboards.", "tags": ["data-viz", "reports"]},
+        {"name": "doc-coauthoring", "description": "Structured three-stage workflow for co-authoring documentation.", "tags": ["writing", "documentation"]},
+        {"name": "internal-comms", "description": "Write internal comms: 3P updates, status reports, leadership updates.", "tags": ["writing", "ops"]},
+        {"name": "email-drafting", "description": "Draft emails for Rees with tone, formatting, and review protocol.", "tags": ["email"]},
+        {"name": "proposal-template-adaptation", "description": "Adapt winning proposals for new clients.", "tags": ["sales", "levity"]},
+        {"name": "proposal-page-layout", "description": "Rules and checklist for partner proposal HTML pages.", "tags": ["pdf", "layout"]},
+        {"name": "google-doc-creation", "description": "Create formatted Google Docs with rich styling.", "tags": ["google", "formatting"]},
+        {"name": "wix-blog-publish", "description": "Publish blog posts to Wix via the Blog API.", "tags": ["wix", "publishing"]}
+      ]
+    },
+    "Video & Media": {
+      "color": "#f43f5e",
+      "skills": [
+        {"name": "openmontage", "description": "Agent-orchestrated video production framework. 12 pipelines.", "tags": ["production", "remotion"]},
+        {"name": "remotion-video", "description": "Generate AI videos with KIE API and compose with Remotion.", "tags": ["ai", "video"]},
+        {"name": "video-content", "description": "Social media video + image content pipeline.", "tags": ["social", "ai"]},
+        {"name": "video-processing", "description": "Process video from Instagram, TikTok, YouTube. Download, transcribe.", "tags": ["transcription"]},
+        {"name": "voice-note-processing", "description": "Process voice notes. Download, transcribe with Whisper, summarise.", "tags": ["audio", "transcription"]},
+        {"name": "tube-summary", "description": "Search YouTube, extract subtitles, summarise with timestamps.", "tags": ["youtube", "research"]},
+        {"name": "upload-post", "description": "Post to TikTok, Instagram, YouTube, LinkedIn, Facebook, X, Threads, Pinterest, Reddit, Bluesky.", "tags": ["social", "publishing"]},
+        {"name": "pinterest", "description": "Search/browse Pinterest boards, convert to high-res images.", "tags": ["social", "images"]},
+        {"name": "ig-carousel-scrape", "description": "Auto-scrape every slide of an Instagram post.", "tags": ["instagram", "scraping"]}
+      ]
+    },
+    "Operations": {
+      "color": "#84cc16",
+      "skills": [
+        {"name": "daily-briefing", "description": "Generate daily briefing from calendar, memory, team status.", "tags": ["briefing"]},
+        {"name": "instant-business", "description": "End-to-end build and launch of a new side hustle / micro-SaaS.", "tags": ["launch", "full-stack"]},
+        {"name": "new-team-setup", "description": "Set up a new team/project in Kern OS.", "tags": ["setup"]},
+        {"name": "create-prd", "description": "Generate comprehensive Product Requirements Document.", "tags": ["product", "planning"]},
+        {"name": "grill-me", "description": "Adversarial requirements gathering before building anything non-trivial.", "tags": ["planning", "requirements"]},
+        {"name": "ubiquitous-language", "description": "Generate shared glossary of domain terms for a project.", "tags": ["documentation", "ddd"]},
+        {"name": "xero-invoice-check", "description": "Check Xero for outstanding invoices and account status.", "tags": ["finance"]}
+      ]
+    },
+    "Meta & Agents": {
+      "color": "#a855f7",
+      "skills": [
+        {"name": "skill-creator", "description": "Create, modify, and measure skills with evals.", "tags": ["skill-management"]},
+        {"name": "introspection-scout", "description": "Weekly scout: scans memory and conversations to discover new skill opportunities.", "tags": ["scheduled", "introspection"]},
+        {"name": "spawn-agent", "description": "Build standardised spawn prompts for subagents.", "tags": ["orchestration"]},
+        {"name": "instruction-tuning", "description": "TDD for AI instructions. Test subjects against real tasks.", "tags": ["testing", "quality"]},
+        {"name": "war-room", "description": "Multi-agent war room for complex problems. Specialist agents in dependency-ordered waves.", "tags": ["strategy", "methodology"]},
+        {"name": "hippocampus", "description": "Background memory organ for AI agents. Importance scoring, decay, semantic reinforcement.", "tags": ["memory", "architecture"]},
+        {"name": "decision-toolkit", "description": "Structured decision-making tools: guides, bias checkers, scenario explorers.", "tags": ["frameworks"]},
+        {"name": "webapp-testing", "description": "Test web apps with Playwright: verify frontend behaviour, debug UI.", "tags": ["testing", "playwright"]}
+      ]
+    },
+    "Integrations": {
+      "color": "#f97316",
+      "skills": [
+        {"name": "discourse-api", "description": "Interact with Thingiverse Discourse forum API.", "tags": ["discourse", "thingiverse"]},
+        {"name": "google-api-gotchas", "description": "Known gotchas for Google APIs via kern-google MCP.", "tags": ["google", "debugging"]},
+        {"name": "fractionaljobs-auto-apply", "description": "Automated application submission for fractionaljobs.io.", "tags": ["automation", "playwright"]},
+        {"name": "vapi-voice-playbook", "description": "Troubleshooting playbook for VAPI voice AI calls.", "tags": ["voice-ai", "bookerbot"]},
+        {"name": "github-repo-evaluate", "description": "Evaluate a GitHub repository for relevance and quality.", "tags": ["github", "evaluation"]}
+      ]
+    }
+  }
+};
+
+// ============================================================
+// LAYOUT ENGINE
+// ============================================================
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const canvas = document.getElementById('canvas');
+const detailPanel = document.getElementById('detailPanel');
+const panelBody = document.getElementById('panelBody');
+const panelClose = document.getElementById('panelClose');
+const searchInput = document.getElementById('searchInput');
+const legendEl = document.getElementById('legend');
+
+// Sizing
+const CENTER_RADIUS = 44;
+const CAT_RADIUS = 22;
+const SKILL_RADIUS = 8;
+const RING1_DIST = 220;
+const RING2_BASE = 180;
+const RING2_SPREAD = 0.55; // radians spread for skill fan
+
+// Build node graph
+const nodes = [];
+const edges = [];
+let totalSkills = 0;
+const catNames = Object.keys(DATA.categories);
+const catCount = catNames.length;
+document.getElementById('catCount').textContent = catCount;
+
+// Center node
+const centerNode = {
+  id: 'kern-os',
+  type: 'center',
+  label: 'Kern OS',
+  x: 0,
+  y: 0,
+  r: CENTER_RADIUS,
+  color: '#a855f7',
+  category: null,
+  expanded: true,
+  children: []
+};
+nodes.push(centerNode);
+
+// Category + skill nodes
+catNames.forEach((catName, i) => {
+  const cat = DATA.categories[catName];
+  const angle = (2 * Math.PI * i) / catCount - Math.PI / 2;
+  const cx = Math.cos(angle) * RING1_DIST;
+  const cy = Math.sin(angle) * RING1_DIST;
+
+  const catNode = {
+    id: `cat-${catName}`,
+    type: 'category',
+    label: catName,
+    x: cx,
+    y: cy,
+    r: CAT_RADIUS,
+    color: cat.color,
+    category: catName,
+    expanded: true,
+    children: [],
+    angle: angle
+  };
+  nodes.push(catNode);
+  centerNode.children.push(catNode.id);
+  edges.push({ from: 'kern-os', to: catNode.id, color: cat.color });
+
+  const skillCount = cat.skills.length;
+  const fanAngle = Math.min(RING2_SPREAD * skillCount, Math.PI * 0.85);
+  const startAngle = angle - fanAngle / 2;
+  const angleStep = skillCount > 1 ? fanAngle / (skillCount - 1) : 0;
+  const ringDist = RING2_BASE + skillCount * 4;
+
+  cat.skills.forEach((skill, j) => {
+    const sAngle = startAngle + angleStep * j;
+    const jitter = (Math.sin(j * 7.3 + i * 3.1) * 15);
+    const sx = cx + Math.cos(sAngle) * (ringDist + jitter);
+    const sy = cy + Math.sin(sAngle) * (ringDist + jitter);
+
+    const skillNode = {
+      id: `skill-${catName}-${skill.name}`,
+      type: 'skill',
+      label: skill.name,
+      x: sx,
+      y: sy,
+      r: SKILL_RADIUS,
+      color: cat.color,
+      category: catName,
+      data: skill,
+      parentCat: catNode.id
+    };
+    nodes.push(skillNode);
+    catNode.children.push(skillNode.id);
+    edges.push({ from: catNode.id, to: skillNode.id, color: cat.color });
+    totalSkills++;
+  });
+});
+
+document.getElementById('skillCount').textContent = totalSkills;
+
+// Node lookup
+const nodeMap = {};
+nodes.forEach(n => nodeMap[n.id] = n);
+
+// ============================================================
+// RENDER SVG
+// ============================================================
+let viewBox = { x: -600, y: -500, w: 1200, h: 1000 };
+let zoom = 1;
+let isDragging = false;
+let dragStart = { x: 0, y: 0 };
+let panStart = { x: 0, y: 0 };
+let activeNode = null;
+let searchTerm = '';
+
+function updateViewBox() {
+  canvas.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`);
+}
+updateViewBox();
+
+// Defs: filters and gradients
+const defs = document.createElementNS(SVG_NS, 'defs');
+
+// Glow filter for each category
+catNames.forEach(catName => {
+  const cat = DATA.categories[catName];
+  const filter = document.createElementNS(SVG_NS, 'filter');
+  filter.setAttribute('id', `glow-${catName.replace(/[^a-zA-Z0-9]/g, '')}`);
+  filter.setAttribute('x', '-80%');
+  filter.setAttribute('y', '-80%');
+  filter.setAttribute('width', '260%');
+  filter.setAttribute('height', '260%');
+  const feGauss = document.createElementNS(SVG_NS, 'feGaussianBlur');
+  feGauss.setAttribute('stdDeviation', '6');
+  feGauss.setAttribute('result', 'coloredBlur');
+  const feMerge = document.createElementNS(SVG_NS, 'feMerge');
+  const feMerge1 = document.createElementNS(SVG_NS, 'feMergeNode');
+  feMerge1.setAttribute('in', 'coloredBlur');
+  const feMerge2 = document.createElementNS(SVG_NS, 'feMergeNode');
+  feMerge2.setAttribute('in', 'SourceGraphic');
+  feMerge.appendChild(feMerge1);
+  feMerge.appendChild(feMerge2);
+  filter.appendChild(feGauss);
+  filter.appendChild(feMerge);
+  defs.appendChild(filter);
+});
+
+// Center glow
+const centerFilter = document.createElementNS(SVG_NS, 'filter');
+centerFilter.setAttribute('id', 'glow-center');
+centerFilter.setAttribute('x', '-100%');
+centerFilter.setAttribute('y', '-100%');
+centerFilter.setAttribute('width', '300%');
+centerFilter.setAttribute('height', '300%');
+const cfGauss = document.createElementNS(SVG_NS, 'feGaussianBlur');
+cfGauss.setAttribute('stdDeviation', '12');
+cfGauss.setAttribute('result', 'coloredBlur');
+const cfMerge = document.createElementNS(SVG_NS, 'feMerge');
+const cfM1 = document.createElementNS(SVG_NS, 'feMergeNode');
+cfM1.setAttribute('in', 'coloredBlur');
+const cfM2 = document.createElementNS(SVG_NS, 'feMergeNode');
+cfM2.setAttribute('in', 'SourceGraphic');
+cfMerge.appendChild(cfM1);
+cfMerge.appendChild(cfM2);
+centerFilter.appendChild(cfGauss);
+centerFilter.appendChild(cfMerge);
+defs.appendChild(centerFilter);
+
+canvas.appendChild(defs);
+
+// Layers
+const edgeLayer = document.createElementNS(SVG_NS, 'g');
+edgeLayer.setAttribute('id', 'edges');
+const particleLayer = document.createElementNS(SVG_NS, 'g');
+particleLayer.setAttribute('id', 'particles');
+const nodeLayer = document.createElementNS(SVG_NS, 'g');
+nodeLayer.setAttribute('id', 'nodes');
+
+canvas.appendChild(edgeLayer);
+canvas.appendChild(particleLayer);
+canvas.appendChild(nodeLayer);
+
+// Draw edges
+const edgeElements = {};
+edges.forEach(e => {
+  const fromN = nodeMap[e.from];
+  const toN = nodeMap[e.to];
+
+  const line = document.createElementNS(SVG_NS, 'line');
+  line.setAttribute('x1', fromN.x);
+  line.setAttribute('y1', fromN.y);
+  line.setAttribute('x2', toN.x);
+  line.setAttribute('y2', toN.y);
+  line.setAttribute('stroke', e.color);
+  line.setAttribute('stroke-opacity', '0.15');
+  line.setAttribute('stroke-width', fromN.type === 'center' ? '1.5' : '1');
+  line.setAttribute('data-from', e.from);
+  line.setAttribute('data-to', e.to);
+  edgeLayer.appendChild(line);
+  edgeElements[`${e.from}--${e.to}`] = line;
+});
+
+// Draw nodes
+const nodeElements = {};
+nodes.forEach(n => {
+  const g = document.createElementNS(SVG_NS, 'g');
+  g.setAttribute('class', `node node-${n.type}`);
+  g.setAttribute('data-id', n.id);
+  g.style.cursor = 'pointer';
+
+  // Glow circle (larger, blurred)
+  const glow = document.createElementNS(SVG_NS, 'circle');
+  glow.setAttribute('cx', n.x);
+  glow.setAttribute('cy', n.y);
+  glow.setAttribute('r', n.r * 1.8);
+  glow.setAttribute('fill', n.color);
+  glow.setAttribute('opacity', '0');
+  glow.setAttribute('class', 'node-glow');
+  g.appendChild(glow);
+
+  // Pulse ring
+  const pulse = document.createElementNS(SVG_NS, 'circle');
+  pulse.setAttribute('cx', n.x);
+  pulse.setAttribute('cy', n.y);
+  pulse.setAttribute('r', n.r);
+  pulse.setAttribute('fill', 'none');
+  pulse.setAttribute('stroke', n.color);
+  pulse.setAttribute('stroke-width', '1');
+  pulse.setAttribute('opacity', '0');
+  pulse.setAttribute('class', 'node-pulse');
+  g.appendChild(pulse);
+
+  // Main circle
+  const circle = document.createElementNS(SVG_NS, 'circle');
+  circle.setAttribute('cx', n.x);
+  circle.setAttribute('cy', n.y);
+  circle.setAttribute('r', n.r);
+  circle.setAttribute('class', 'node-circle');
+
+  if (n.type === 'center') {
+    circle.setAttribute('fill', 'url(#center-gradient)');
+    circle.setAttribute('filter', 'url(#glow-center)');
+    // Create gradient for center
+    const grad = document.createElementNS(SVG_NS, 'radialGradient');
+    grad.setAttribute('id', 'center-gradient');
+    const stop1 = document.createElementNS(SVG_NS, 'stop');
+    stop1.setAttribute('offset', '0%');
+    stop1.setAttribute('stop-color', '#c084fc');
+    const stop2 = document.createElementNS(SVG_NS, 'stop');
+    stop2.setAttribute('offset', '100%');
+    stop2.setAttribute('stop-color', '#7c3aed');
+    grad.appendChild(stop1);
+    grad.appendChild(stop2);
+    defs.appendChild(grad);
+  } else if (n.type === 'category') {
+    circle.setAttribute('fill', n.color);
+    circle.setAttribute('filter', `url(#glow-${n.category.replace(/[^a-zA-Z0-9]/g, '')})`);
+  } else {
+    circle.setAttribute('fill', n.color);
+    circle.setAttribute('fill-opacity', '0.7');
+  }
+
+  // Ring / border
+  const ring = document.createElementNS(SVG_NS, 'circle');
+  ring.setAttribute('cx', n.x);
+  ring.setAttribute('cy', n.y);
+  ring.setAttribute('r', n.r + 2);
+  ring.setAttribute('fill', 'none');
+  ring.setAttribute('stroke', n.color);
+  ring.setAttribute('stroke-width', n.type === 'center' ? '2' : '1');
+  ring.setAttribute('stroke-opacity', n.type === 'skill' ? '0.3' : '0.5');
+
+  g.appendChild(ring);
+  g.appendChild(circle);
+
+  // Label
+  const text = document.createElementNS(SVG_NS, 'text');
+  text.setAttribute('x', n.x);
+  text.setAttribute('y', n.y + n.r + (n.type === 'center' ? 22 : n.type === 'category' ? 18 : 16));
+  text.setAttribute('text-anchor', 'middle');
+  text.setAttribute('fill', n.type === 'skill' ? '#a1a1aa' : '#fafafa');
+  text.setAttribute('font-family', 'Inter, sans-serif');
+  text.setAttribute('font-size', n.type === 'center' ? '16' : n.type === 'category' ? '13' : '10');
+  text.setAttribute('font-weight', n.type === 'center' ? '700' : n.type === 'category' ? '600' : '400');
+  text.setAttribute('class', 'node-label');
+  text.textContent = n.label;
+  g.appendChild(text);
+
+  // Skill count badge for categories
+  if (n.type === 'category' && n.children) {
+    const badge = document.createElementNS(SVG_NS, 'text');
+    badge.setAttribute('x', n.x);
+    badge.setAttribute('y', n.y + 4);
+    badge.setAttribute('text-anchor', 'middle');
+    badge.setAttribute('fill', '#fff');
+    badge.setAttribute('font-family', 'Inter, sans-serif');
+    badge.setAttribute('font-size', '11');
+    badge.setAttribute('font-weight', '700');
+    badge.textContent = n.children.length;
+    g.appendChild(badge);
+  }
+
+  // "K" in center
+  if (n.type === 'center') {
+    const kText = document.createElementNS(SVG_NS, 'text');
+    kText.setAttribute('x', n.x);
+    kText.setAttribute('y', n.y + 6);
+    kText.setAttribute('text-anchor', 'middle');
+    kText.setAttribute('fill', '#fff');
+    kText.setAttribute('font-family', 'Inter, sans-serif');
+    kText.setAttribute('font-size', '22');
+    kText.setAttribute('font-weight', '700');
+    kText.textContent = 'K';
+    g.appendChild(kText);
+  }
+
+  nodeLayer.appendChild(g);
+  nodeElements[n.id] = { g, glow, pulse, circle, ring, text };
+});
+
+// ============================================================
+// PARTICLES
+// ============================================================
+const particles = [];
+const PARTICLE_COUNT = 80;
+
+function initParticles() {
+  for (let i = 0; i < PARTICLE_COUNT; i++) {
+    const edgeIdx = Math.floor(Math.random() * edges.length);
+    const e = edges[edgeIdx];
+    const fromN = nodeMap[e.from];
+    const toN = nodeMap[e.to];
+    const t = Math.random();
+    const speed = 0.001 + Math.random() * 0.003;
+    const size = 1.5 + Math.random() * 1.5;
+
+    const dot = document.createElementNS(SVG_NS, 'circle');
+    dot.setAttribute('r', size);
+    dot.setAttribute('fill', e.color);
+    dot.setAttribute('opacity', '0.4');
+    particleLayer.appendChild(dot);
+
+    particles.push({
+      el: dot,
+      edge: edgeIdx,
+      t: t,
+      speed: speed,
+      forward: Math.random() > 0.5,
+      fromX: fromN.x,
+      fromY: fromN.y,
+      toX: toN.x,
+      toY: toN.y
+    });
+  }
+}
+
+function animateParticles() {
+  particles.forEach(p => {
+    p.t += p.forward ? p.speed : -p.speed;
+    if (p.t > 1) { p.t = 1; p.forward = false; }
+    if (p.t < 0) { p.t = 0; p.forward = true; }
+
+    const x = p.fromX + (p.toX - p.fromX) * p.t;
+    const y = p.fromY + (p.toY - p.fromY) * p.t;
+    p.el.setAttribute('cx', x);
+    p.el.setAttribute('cy', y);
+  });
+}
+
+initParticles();
+
+// ============================================================
+// PULSE ANIMATION
+// ============================================================
+let pulsePhase = 0;
+function animatePulses() {
+  pulsePhase += 0.015;
+  nodes.forEach((n, i) => {
+    const el = nodeElements[n.id];
+    if (!el) return;
+
+    // Subtle breathing glow
+    const breathe = Math.sin(pulsePhase + i * 0.7) * 0.5 + 0.5;
+
+    if (n.type === 'center') {
+      el.glow.setAttribute('opacity', 0.1 + breathe * 0.08);
+      el.glow.setAttribute('r', n.r * 2 + breathe * 8);
+    } else if (n.type === 'category') {
+      el.glow.setAttribute('opacity', 0.05 + breathe * 0.05);
+      el.glow.setAttribute('r', n.r * 1.6 + breathe * 4);
+    }
+
+    // Slow pulse ring on categories
+    if (n.type === 'category') {
+      const pulseT = (pulsePhase * 0.5 + i * 1.2) % (Math.PI * 2);
+      const pulseSize = n.r + 6 + Math.sin(pulseT) * 0.5 * 14;
+      const pulseOpacity = Math.max(0, 0.25 - (pulseSize - n.r - 6) / 20);
+      el.pulse.setAttribute('r', pulseSize);
+      el.pulse.setAttribute('opacity', pulseOpacity);
+    }
+  });
+}
+
+// ============================================================
+// MAIN ANIMATION LOOP
+// ============================================================
+function animate() {
+  animateParticles();
+  animatePulses();
+  requestAnimationFrame(animate);
+}
+animate();
+
+// ============================================================
+// INTERACTION: Pan / Zoom
+// ============================================================
+canvas.addEventListener('mousedown', e => {
+  if (e.target.closest('.node')) return;
+  isDragging = true;
+  canvas.classList.add('dragging');
+  dragStart = { x: e.clientX, y: e.clientY };
+  panStart = { x: viewBox.x, y: viewBox.y };
+});
+
+window.addEventListener('mousemove', e => {
+  if (!isDragging) return;
+  const dx = (e.clientX - dragStart.x) * (viewBox.w / canvas.clientWidth);
+  const dy = (e.clientY - dragStart.y) * (viewBox.h / canvas.clientHeight);
+  viewBox.x = panStart.x - dx;
+  viewBox.y = panStart.y - dy;
+  updateViewBox();
+});
+
+window.addEventListener('mouseup', () => {
+  isDragging = false;
+  canvas.classList.remove('dragging');
+});
+
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  const factor = e.deltaY > 0 ? 1.08 : 0.92;
+
+  // Mouse position in SVG coords
+  const rect = canvas.getBoundingClientRect();
+  const mx = viewBox.x + (e.clientX - rect.left) / rect.width * viewBox.w;
+  const my = viewBox.y + (e.clientY - rect.top) / rect.height * viewBox.h;
+
+  const newW = viewBox.w * factor;
+  const newH = viewBox.h * factor;
+
+  // Clamp zoom
+  if (newW < 200 || newW > 6000) return;
+
+  viewBox.x = mx - (mx - viewBox.x) * factor;
+  viewBox.y = my - (my - viewBox.y) * factor;
+  viewBox.w = newW;
+  viewBox.h = newH;
+  zoom = 1200 / viewBox.w;
+  updateViewBox();
+}, { passive: false });
+
+// Touch support
+let lastTouchDist = 0;
+let touchStart = null;
+
+canvas.addEventListener('touchstart', e => {
+  if (e.touches.length === 1) {
+    const t = e.touches[0];
+    isDragging = true;
+    dragStart = { x: t.clientX, y: t.clientY };
+    panStart = { x: viewBox.x, y: viewBox.y };
+  } else if (e.touches.length === 2) {
+    isDragging = false;
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    lastTouchDist = Math.sqrt(dx*dx + dy*dy);
+  }
+}, { passive: true });
+
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (e.touches.length === 1 && isDragging) {
+    const t = e.touches[0];
+    const dx = (t.clientX - dragStart.x) * (viewBox.w / canvas.clientWidth);
+    const dy = (t.clientY - dragStart.y) * (viewBox.h / canvas.clientHeight);
+    viewBox.x = panStart.x - dx;
+    viewBox.y = panStart.y - dy;
+    updateViewBox();
+  } else if (e.touches.length === 2) {
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const factor = lastTouchDist / dist;
+    const newW = viewBox.w * factor;
+    const newH = viewBox.h * factor;
+    if (newW >= 200 && newW <= 6000) {
+      const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+      const rect = canvas.getBoundingClientRect();
+      const mx = viewBox.x + (cx - rect.left) / rect.width * viewBox.w;
+      const my = viewBox.y + (cy - rect.top) / rect.height * viewBox.h;
+      viewBox.x = mx - (mx - viewBox.x) * factor;
+      viewBox.y = my - (my - viewBox.y) * factor;
+      viewBox.w = newW;
+      viewBox.h = newH;
+      updateViewBox();
+    }
+    lastTouchDist = dist;
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchend', () => { isDragging = false; });
+
+// ============================================================
+// INTERACTION: Hover
+// ============================================================
+let hoveredNode = null;
+
+canvas.addEventListener('mousemove', e => {
+  if (isDragging) return;
+  const target = e.target.closest('.node');
+  const nodeId = target ? target.getAttribute('data-id') : null;
+
+  if (nodeId === hoveredNode) return;
+
+  // Un-hover previous
+  if (hoveredNode) {
+    const prev = nodeMap[hoveredNode];
+    const prevEl = nodeElements[hoveredNode];
+    if (prevEl) {
+      prevEl.ring.setAttribute('stroke-opacity', prev.type === 'skill' ? '0.3' : '0.5');
+      prevEl.ring.setAttribute('stroke-width', prev.type === 'center' ? '2' : '1');
+      prevEl.text.setAttribute('fill', prev.type === 'skill' ? '#a1a1aa' : '#fafafa');
+    }
+    // Dim edges back
+    edges.forEach(edge => {
+      const key = `${edge.from}--${edge.to}`;
+      const el = edgeElements[key];
+      if (el) {
+        el.setAttribute('stroke-opacity', '0.15');
+        el.setAttribute('stroke-width', nodeMap[edge.from].type === 'center' ? '1.5' : '1');
+      }
+    });
+  }
+
+  hoveredNode = nodeId;
+
+  if (hoveredNode) {
+    const node = nodeMap[hoveredNode];
+    const el = nodeElements[hoveredNode];
+    if (el) {
+      el.ring.setAttribute('stroke-opacity', '0.9');
+      el.ring.setAttribute('stroke-width', '2');
+      el.text.setAttribute('fill', '#ffffff');
+    }
+
+    // Highlight connected edges
+    edges.forEach(edge => {
+      if (edge.from === hoveredNode || edge.to === hoveredNode) {
+        const key = `${edge.from}--${edge.to}`;
+        const lineEl = edgeElements[key];
+        if (lineEl) {
+          lineEl.setAttribute('stroke-opacity', '0.6');
+          lineEl.setAttribute('stroke-width', '2');
+        }
+      }
+    });
+
+    // If category, also highlight all children edges
+    if (node.type === 'category' && node.children) {
+      node.children.forEach(childId => {
+        const childEl = nodeElements[childId];
+        if (childEl) {
+          childEl.ring.setAttribute('stroke-opacity', '0.6');
+        }
+      });
+    }
+  }
+});
+
+// ============================================================
+// INTERACTION: Click
+// ============================================================
+canvas.addEventListener('click', e => {
+  const target = e.target.closest('.node');
+  if (!target) {
+    closePanel();
+    return;
+  }
+  const nodeId = target.getAttribute('data-id');
+  const node = nodeMap[nodeId];
+  if (!node) return;
+
+  if (node.type === 'skill') {
+    openSkillPanel(node);
+  } else if (node.type === 'category') {
+    toggleCategory(node);
+  }
+});
+
+// ============================================================
+// CATEGORY EXPAND/COLLAPSE
+// ============================================================
+function toggleCategory(catNode) {
+  catNode.expanded = !catNode.expanded;
+  const opacity = catNode.expanded ? 1 : 0;
+  const display = catNode.expanded ? '' : 'none';
+
+  catNode.children.forEach(childId => {
+    const el = nodeElements[childId];
+    if (el) {
+      el.g.style.transition = 'opacity 0.4s ease';
+      el.g.style.opacity = opacity;
+      setTimeout(() => {
+        if (!catNode.expanded) el.g.style.display = display;
+      }, catNode.expanded ? 0 : 400);
+      if (catNode.expanded) el.g.style.display = '';
+    }
+    // Edge
+    const key = `${catNode.id}--${childId}`;
+    const lineEl = edgeElements[key];
+    if (lineEl) {
+      lineEl.style.transition = 'opacity 0.4s ease';
+      lineEl.style.opacity = opacity;
+    }
+  });
+
+  // Update particles visibility for collapsed edges
+  particles.forEach(p => {
+    const edge = edges[p.edge];
+    if (!edge) return;
+    const fromNode = nodeMap[edge.from];
+    const toNode = nodeMap[edge.to];
+    if (fromNode && fromNode.type === 'category' && !fromNode.expanded && toNode && toNode.type === 'skill') {
+      p.el.style.opacity = '0';
+    } else if (toNode && toNode.type === 'skill') {
+      const parentCat = nodeMap[toNode.parentCat];
+      if (parentCat && !parentCat.expanded) {
+        p.el.style.opacity = '0';
+      } else {
+        p.el.style.opacity = '';
+      }
+    }
+  });
+}
+
+// ============================================================
+// DETAIL PANEL
+// ============================================================
+function openSkillPanel(node) {
+  activeNode = node;
+  const skill = node.data;
+  const cat = DATA.categories[node.category];
+  const catColor = cat.color;
+
+  // Find related skills (same tags)
+  const related = [];
+  const skillTags = new Set(skill.tags);
+  Object.entries(DATA.categories).forEach(([cn, c]) => {
+    c.skills.forEach(s => {
+      if (s.name === skill.name) return;
+      const overlap = s.tags.filter(t => skillTags.has(t));
+      if (overlap.length > 0) {
+        related.push({ name: s.name, category: cn, color: c.color, overlap: overlap.length });
+      }
+    });
+  });
+  related.sort((a, b) => b.overlap - a.overlap);
+  const topRelated = related.slice(0, 6);
+
+  panelBody.innerHTML = `
+    <div class="panel-category" style="color: ${catColor}">
+      <span class="panel-cat-dot" style="background: ${catColor}"></span>
+      ${node.category}
+    </div>
+    <div class="panel-title">${skill.name}</div>
+    <div class="panel-description">${skill.description}</div>
+
+    <div class="panel-section-label">Tags</div>
+    <div class="panel-tags">
+      ${skill.tags.map(t => `<span class="panel-tag" style="color: ${catColor}; border-color: ${catColor}33; background: ${catColor}11">${t}</span>`).join('')}
+    </div>
+
+    <div class="panel-usage">
+      <div class="panel-usage-label">Usage</div>
+      <div class="panel-usage-code">/${skill.name}</div>
+    </div>
+
+    ${topRelated.length > 0 ? `
+      <div class="panel-section-label">Related Skills</div>
+      <div class="panel-related">
+        ${topRelated.map(r => `
+          <div class="panel-related-item" data-skill="${r.name}" data-cat="${r.category}">
+            <span class="panel-related-dot" style="background: ${r.color}"></span>
+            ${r.name}
+            <span style="margin-left:auto; color: var(--text-dim); font-size: 12px;">${r.category}</span>
+          </div>
+        `).join('')}
+      </div>
+    ` : ''}
+  `;
+
+  // Related item click
+  panelBody.querySelectorAll('.panel-related-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const sName = el.getAttribute('data-skill');
+      const sCat = el.getAttribute('data-cat');
+      const targetNode = nodeMap[`skill-${sCat}-${sName}`];
+      if (targetNode) {
+        openSkillPanel(targetNode);
+        // Pan to node
+        smoothPanTo(targetNode.x, targetNode.y);
+      }
+    });
+  });
+
+  detailPanel.classList.add('open');
+
+  // Highlight the selected node
+  highlightNode(node.id);
+}
+
+function closePanel() {
+  detailPanel.classList.remove('open');
+  if (activeNode) {
+    unhighlightNode(activeNode.id);
+    activeNode = null;
+  }
+}
+
+function highlightNode(nodeId) {
+  const el = nodeElements[nodeId];
+  if (!el) return;
+  el.circle.setAttribute('r', nodeMap[nodeId].r * 1.3);
+  el.ring.setAttribute('r', nodeMap[nodeId].r * 1.3 + 3);
+  el.ring.setAttribute('stroke-opacity', '1');
+  el.ring.setAttribute('stroke-width', '2.5');
+}
+
+function unhighlightNode(nodeId) {
+  const el = nodeElements[nodeId];
+  const n = nodeMap[nodeId];
+  if (!el || !n) return;
+  el.circle.setAttribute('r', n.r);
+  el.ring.setAttribute('r', n.r + 2);
+  el.ring.setAttribute('stroke-opacity', n.type === 'skill' ? '0.3' : '0.5');
+  el.ring.setAttribute('stroke-width', n.type === 'center' ? '2' : '1');
+}
+
+function smoothPanTo(x, y) {
+  const targetVB = {
+    x: x - viewBox.w / 2,
+    y: y - viewBox.h / 2
+  };
+
+  const startVB = { x: viewBox.x, y: viewBox.y };
+  const duration = 500;
+  const startTime = performance.now();
+
+  function step(now) {
+    const t = Math.min(1, (now - startTime) / duration);
+    const ease = 1 - Math.pow(1 - t, 3); // ease out cubic
+    viewBox.x = startVB.x + (targetVB.x - startVB.x) * ease;
+    viewBox.y = startVB.y + (targetVB.y - startVB.y) * ease;
+    updateViewBox();
+    if (t < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+panelClose.addEventListener('click', closePanel);
+
+// ============================================================
+// SEARCH
+// ============================================================
+function applySearch(term) {
+  searchTerm = term.toLowerCase().trim();
+
+  if (!searchTerm) {
+    // Reset all
+    nodes.forEach(n => {
+      const el = nodeElements[n.id];
+      if (!el) return;
+      el.g.style.opacity = '1';
+      el.g.style.display = '';
+    });
+    Object.values(edgeElements).forEach(el => {
+      el.style.opacity = '';
+      el.setAttribute('stroke-opacity', '0.15');
+    });
+    particles.forEach(p => { p.el.style.opacity = ''; });
+    return;
+  }
+
+  // Find matching skill nodes
+  const matchedSkills = new Set();
+  const matchedCats = new Set();
+
+  nodes.forEach(n => {
+    if (n.type === 'skill') {
+      const nameMatch = n.label.toLowerCase().includes(searchTerm);
+      const tagMatch = n.data && n.data.tags.some(t => t.toLowerCase().includes(searchTerm));
+      const descMatch = n.data && n.data.description.toLowerCase().includes(searchTerm);
+      const catMatch = n.category && n.category.toLowerCase().includes(searchTerm);
+      if (nameMatch || tagMatch || descMatch || catMatch) {
+        matchedSkills.add(n.id);
+        matchedCats.add(n.parentCat);
+      }
+    }
+  });
+
+  // Also match category names directly
+  nodes.forEach(n => {
+    if (n.type === 'category') {
+      if (n.label.toLowerCase().includes(searchTerm)) {
+        matchedCats.add(n.id);
+        if (n.children) n.children.forEach(c => matchedSkills.add(c));
+      }
+    }
+  });
+
+  // Apply visibility
+  nodes.forEach(n => {
+    const el = nodeElements[n.id];
+    if (!el) return;
+
+    if (n.type === 'center') {
+      el.g.style.opacity = '1';
+    } else if (n.type === 'category') {
+      el.g.style.opacity = matchedCats.has(n.id) ? '1' : '0.12';
+    } else if (n.type === 'skill') {
+      el.g.style.opacity = matchedSkills.has(n.id) ? '1' : '0.06';
+    }
+    el.g.style.transition = 'opacity 0.3s ease';
+  });
+
+  // Edges
+  edges.forEach(e => {
+    const key = `${e.from}--${e.to}`;
+    const el = edgeElements[key];
+    if (!el) return;
+    const isRelevant = matchedSkills.has(e.to) || matchedCats.has(e.to) || matchedCats.has(e.from);
+    el.setAttribute('stroke-opacity', isRelevant ? '0.35' : '0.03');
+    el.style.transition = 'stroke-opacity 0.3s ease';
+  });
+
+  // Particles
+  particles.forEach(p => {
+    const edge = edges[p.edge];
+    if (!edge) return;
+    const isRelevant = matchedSkills.has(edge.to) || matchedCats.has(edge.to);
+    p.el.style.opacity = isRelevant ? '' : '0.05';
+  });
+}
+
+searchInput.addEventListener('input', e => {
+  applySearch(e.target.value);
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (detailPanel.classList.contains('open')) {
+      closePanel();
+    } else if (searchInput.value) {
+      searchInput.value = '';
+      applySearch('');
+      searchInput.blur();
+    }
+  }
+  if (e.key === '/' && document.activeElement !== searchInput) {
+    e.preventDefault();
+    searchInput.focus();
+  }
+});
+
+// ============================================================
+// LEGEND
+// ============================================================
+catNames.forEach(catName => {
+  const cat = DATA.categories[catName];
+  const item = document.createElement('div');
+  item.className = 'legend-item';
+  item.innerHTML = `<span class="legend-dot" style="background: ${cat.color}"></span><span class="legend-label">${catName}</span>`;
+  item.addEventListener('click', () => {
+    searchInput.value = catName;
+    applySearch(catName);
+    // Pan to category
+    const catNode = nodeMap[`cat-${catName}`];
+    if (catNode) smoothPanTo(catNode.x, catNode.y);
+  });
+  legendEl.appendChild(item);
+});
+
+// ============================================================
+// AMBIENT: Starfield background
+// ============================================================
+function createStars() {
+  const starLayer = document.createElementNS(SVG_NS, 'g');
+  starLayer.setAttribute('id', 'stars');
+  canvas.insertBefore(starLayer, edgeLayer);
+
+  for (let i = 0; i < 200; i++) {
+    const star = document.createElementNS(SVG_NS, 'circle');
+    star.setAttribute('cx', -2000 + Math.random() * 4000);
+    star.setAttribute('cy', -2000 + Math.random() * 4000);
+    star.setAttribute('r', 0.5 + Math.random() * 1.2);
+    star.setAttribute('fill', '#fafafa');
+    star.setAttribute('opacity', 0.05 + Math.random() * 0.15);
+    starLayer.appendChild(star);
+  }
+}
+createStars();
+
+// ============================================================
+// INITIAL VIEW: fit all nodes
+// ============================================================
+function fitView() {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  nodes.forEach(n => {
+    minX = Math.min(minX, n.x - n.r - 40);
+    minY = Math.min(minY, n.y - n.r - 40);
+    maxX = Math.max(maxX, n.x + n.r + 40);
+    maxY = Math.max(maxY, n.y + n.r + 40);
+  });
+
+  const padding = 100;
+  const w = maxX - minX + padding * 2;
+  const h = maxY - minY + padding * 2;
+  const aspect = canvas.clientWidth / canvas.clientHeight;
+  let vw, vh;
+  if (w / h > aspect) {
+    vw = w;
+    vh = w / aspect;
+  } else {
+    vh = h;
+    vw = h * aspect;
+  }
+  viewBox.x = (minX + maxX) / 2 - vw / 2;
+  viewBox.y = (minY + maxY) / 2 - vh / 2;
+  viewBox.w = vw;
+  viewBox.h = vh;
+  zoom = 1200 / viewBox.w;
+  updateViewBox();
+}
+
+// Slight delay to let fonts load
+setTimeout(fitView, 100);
+
+// Double click to reset view
+canvas.addEventListener('dblclick', e => {
+  if (e.target.closest('.node')) return;
+  fitView();
+});
+</script>
+</body>
+</html>
