@@ -649,9 +649,10 @@ const legendEl = document.getElementById('legend');
 const CENTER_RADIUS = 50;
 const CAT_RADIUS = 28;
 const SKILL_RADIUS = 9;
-const RING1_DIST = 350;       // was 220
-const RING2_BASE = 550;       // was 180 -- distance from CENTER (not from category)
-const RING2_SPREAD = 0.75;    // radians per skill in fan
+const RING1_DIST = 350;
+const RING2_BASE = 550;
+const RING2_SPREAD = 0.75;
+const MIN_SKILL_ANGLE_GAP = 0.09; // minimum radians between skill nodes to avoid overlap
 
 // Build node graph
 const nodes = [];
@@ -701,17 +702,24 @@ catNames.forEach((catName, i) => {
   edges.push({ from: 'kern-os', to: catNode.id, color: cat.color });
 
   const skillCount = cat.skills.length;
-  // Use full arc available to this category (2*PI / catCount) for spreading skills
-  const availableArc = (2 * Math.PI / catCount) * 0.85;
-  const fanAngle = Math.min(RING2_SPREAD * skillCount, availableArc);
-  const startAngle = angle - fanAngle / 2;
-  const angleStep = skillCount > 1 ? fanAngle / (skillCount - 1) : 0;
-  // Ring distance from category center
-  const ringDist = 250 + skillCount * 8;
+  // Available arc for this category slice
+  const availableArc = (2 * Math.PI / catCount) * 0.92;
+  // How many skills fit per ring at MIN_SKILL_ANGLE_GAP spacing?
+  const perRing = Math.max(1, Math.floor(availableArc / MIN_SKILL_ANGLE_GAP));
+  const ringCount = Math.ceil(skillCount / perRing);
+  const baseRingDist = 250;
+  const ringGap = 80; // distance between concentric rings
 
   cat.skills.forEach((skill, j) => {
-    const sAngle = startAngle + angleStep * j;
-    const jitter = (Math.sin(j * 7.3 + i * 3.1) * 12);
+    const ringIdx = Math.floor(j / perRing);
+    const posInRing = j % perRing;
+    const skillsInThisRing = Math.min(perRing, skillCount - ringIdx * perRing);
+    const fanAngle = Math.min(MIN_SKILL_ANGLE_GAP * (skillsInThisRing - 1), availableArc);
+    const ringStartAngle = angle - fanAngle / 2;
+    const ringAngleStep = skillsInThisRing > 1 ? fanAngle / (skillsInThisRing - 1) : 0;
+    const sAngle = ringStartAngle + ringAngleStep * posInRing;
+    const ringDist = baseRingDist + ringIdx * ringGap;
+    const jitter = (Math.sin(j * 7.3 + i * 3.1) * 10);
     const sx = cx + Math.cos(sAngle) * (ringDist + jitter);
     const sy = cy + Math.sin(sAngle) * (ringDist + jitter);
 
@@ -958,7 +966,7 @@ nodes.forEach(n => {
 
   // Label
   const text = document.createElementNS(SVG_NS, 'text');
-  const labelOffset = n.type === 'center' ? 26 : n.type === 'category' ? 22 : 18;
+  const labelOffset = n.type === 'center' ? 26 : n.type === 'category' ? 22 : 22;
   text.setAttribute('x', n.x);
   text.setAttribute('y', n.y + n.r + labelOffset);
   text.setAttribute('text-anchor', 'middle');
