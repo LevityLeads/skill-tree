@@ -751,17 +751,16 @@ let panStart = { x: 0, y: 0 };
 let activeNode = null;
 let searchTerm = '';
 
+// ============================================================
+// SEMANTIC ZOOM: text scaling
+// ============================================================
+const allTextElements = [];
+
 function updateViewBox() {
   canvas.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`);
   zoom = 1800 / viewBox.w;
   updateTextVisibility();
 }
-updateViewBox();
-
-// ============================================================
-// SEMANTIC ZOOM: text scaling
-// ============================================================
-const allTextElements = [];
 
 function updateTextVisibility() {
   const z = zoom;
@@ -1008,6 +1007,9 @@ nodes.forEach(n => {
   nodeLayer.appendChild(g);
   nodeElements[n.id] = { g, glow, pulse, circle, ring, text };
 });
+
+// Initial viewBox setup (must be after allTextElements is populated)
+updateViewBox();
 
 // ============================================================
 // PARTICLES
